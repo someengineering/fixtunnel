@@ -1,0 +1,50 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fixtunnel-config
+data:
+  network_id: "159924d6xxxxxxxx"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fixtunnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fixtunnel
+  template:
+    metadata:
+      labels:
+        app: fixtunnel
+    spec:
+      containers:
+      - name: fixtunnel
+        image: someengineering/fixtunnel
+        args:
+        - "$(NETWORK_ID)"
+        env:
+        - name: NETWORK_ID
+          valueFrom:
+            configMapKeyRef:
+              name: fixtunnel-config
+              key: network_id
+        securityContext:
+          capabilities:
+            add:
+            - "NET_ADMIN"
+            - "SYS_ADMIN"
+        volumeMounts:
+        - mountPath: /dev/net/tun
+          name: dev-net-tun
+        - mountPath: /var/lib/zerotier-one
+          name: var-lib-zerotier-one
+      volumes:
+      - name: dev-net-tun
+        hostPath:
+          path: /dev/net/tun
+      - name: var-lib-zerotier-one
+        persistentVolumeClaim:
+          claimName: var-lib-zerotier-one
